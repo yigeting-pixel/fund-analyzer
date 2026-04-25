@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>明星基金经理分析系统</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#1a3c6e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="基金分析">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --primary:#1a3c6e;
+      --accent:#c9a227;
+      --green:#00843d;
+      --red:#c0392b;
+      --bg:#f4f6fb;
+      --card:#fff;
+      --border:#dde3f0;
+      --text:#1a1a2e;
+      --sub:#5a6a8a;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+
+    /* ===== Header ===== */
+    .header{
+      background:linear-gradient(135deg,#091d42 0%,#1a3c6e 55%,#2756a8 100%);
+      color:#fff;padding:20px 40px;display:flex;align-items:center;gap:16px;
+      box-shadow:0 3px 16px rgba(0,0,0,.35)
+    }
+    .header-icon{font-size:2rem}
+    .header-title{font-size:1.5rem;font-weight:700;letter-spacing:1px}
+    .header-sub{font-size:.8rem;color:#a8c4ff;margin-top:3px}
+    .header-badge{
+      margin-left:auto;background:var(--accent);color:#1a1a2e;
+      padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700
+    }
+
+    /* ===== Layout ===== */
+    .main{max-width:1180px;margin:0 auto;padding:22px 18px}
+
+    /* ===== Input Panel ===== */
+    .panel{
+      background:var(--card);border-radius:14px;padding:24px;
+      box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:22px;
+      border:1px solid var(--border)
+    }
+    .panel-title{font-size:1rem;color:var(--primary);font-weight:700;
+      margin-bottom:16px;display:flex;align-items:center;gap:6px}
+
+    .input-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .input-row input{
+      flex:1;min-width:160px;padding:11px 14px;border:2px solid var(--border);
+      border-radius:9px;font-size:.95rem;outline:none;transition:border .2s;
+      font-family:inherit;color:var(--text)
+    }
+    .input-row input:focus{border-color:var(--primary)}
+    .btn-analyze{
+      background:linear-gradient(135deg,#1a3c6e,#2756a8);color:#fff;
+      padding:11px 26px;border:none;border-radius:9px;font-size:.95rem;
+      font-weight:700;cursor:pointer;transition:transform .1s,box-shadow .2s;
+      white-space:nowrap
+    }
+    .btn-analyze:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(26,60,110,.4)}
+    .btn-analyze:active{transform:none}
+
+    .chips-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+    .chips-row .label{font-size:.8rem;color:var(--sub)}
+    .chip{
+      padding:4px 12px;border-radius:18px;border:1px solid var(--border);
+      background:#eef2fb;font-size:.78rem;cursor:pointer;transition:.2s;color:var(--primary)
+    }
+    .chip:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+    /* Guide Grid */
+    .guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-top:4px}
+    .gi{
+      background:#f0f4fb;border-radius:10px;padding:12px 10px;text-align:center;
+      border-left:3px solid var(--primary)
+    }
+    .gi .icon{font-size:1.3rem;margin-bottom:4px}
+    .gi .lbl{font-size:.78rem;font-weight:700;color:var(--primary)}
+    .gi .wt{font-size:.72rem;color:var(--sub);margin-top:2px}
+    .gi .desc{font-size:.68rem;color:#8a9ac0;margin-top:3px}
+
+    /* ===== Results ===== */
+    .loading{text-align:center;padding:50px;color:var(--sub)}
+    .spinner{
+      width:38px;height:38px;border:3px solid #dde3f0;border-top-color:var(--primary);
+      border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .results-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:14px;flex-wrap:wrap;gap:8px
+    }
+    .results-bar h2{font-size:1rem;color:var(--primary);font-weight:700}
+    .results-meta{font-size:.75rem;color:var(--sub)}
+
+    /* ===== Fund Card ===== */
+    .fund-card{
+      background:var(--card);border-radius:14px;padding:22px;margin-bottom:18px;
+      box-shadow:0 2px 14px rgba(0,0,0,.05);border:1px solid var(--border);
+      transition:box-shadow .2s
+    }
+    .fund-card:hover{box-shadow:0 6px 28px rgba(0,0,0,.1)}
+    .fund-card.top1{border-top:3px solid var(--accent)}
+    .fund-card.top2{border-top:3px solid #aaa}
+    .fund-card.top3{border-top:3px solid #cd7f32}
+
+    .card-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+    .rank-badge{
+      min-width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+      justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;padding:0 2px
+    }
+    .top1 .rank-badge{background:var(--accent);color:#1a1a2e}
+    .top2 .rank-badge{background:#c0c0c0;color:#fff}
+    .top3 .rank-badge{background:#cd7f32;color:#fff}
+    .topn .rank-badge{background:#e8edf5;color:var(--sub)}
+
+    .fund-info{flex:1;min-width:200px}
+    .fund-name{font-size:1.05rem;font-weight:700;margin-bottom:5px}
+    .fund-tags{display:flex;gap:8px;flex-wrap:wrap}
+    .tag{
+      padding:2px 9px;border-radius:12px;font-size:.72rem;
+      background:#eef2fb;color:var(--primary);border:1px solid #d8e2f4
+    }
+
+    .score-block{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+    .score-num{font-size:2.1rem;font-weight:700;line-height:1.1}
+    .score-lbl{font-size:.68rem;color:var(--sub);margin-top:2px}
+
+    .rec-tag{
+      padding:6px 14px;border-radius:8px;font-size:.82rem;font-weight:700;
+      color:#fff;align-self:center;flex-shrink:0;white-space:nowrap
+    }
+
+    /* Stats */
+    .stats-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));
+      gap:10px;margin-bottom:18px
+    }
+    .stat{
+      background:#f8faff;border-radius:9px;padding:10px;text-align:center;
+      border:1px solid var(--border)
+    }
+    .stat-v{font-size:1.1rem;font-weight:700}
+    .stat-v.pos{color:var(--green)}
+    .stat-v.neg{color:var(--red)}
+    .stat-l{font-size:.68rem;color:var(--sub);margin-top:2px}
+
+    /* Score Bars */
+    .score-section h3{font-size:.88rem;color:var(--primary);margin-bottom:11px;font-weight:600}
+    .bar-row{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+    .bar-lbl{width:72px;font-size:.75rem;color:var(--sub);text-align:right;flex-shrink:0}
+    .bar-track{flex:1;height:9px;background:#e8edf8;border-radius:5px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:5px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+    .bar-val{width:26px;font-size:.75rem;font-weight:600;color:var(--text)}
+
+    /* Chart */
+    .chart-section{margin:18px 0}
+    .chart-section h3{font-size:.88rem;color:var(--primary);margin-bottom:10px;font-weight:600}
+    .chart-wrap{position:relative;height:190px}
+
+    /* Commentary */
+    .comment-section{
+      background:#fffef0;border-radius:10px;padding:16px;
+      border:1px solid #e8d860;margin-top:4px
+    }
+    .comment-section h3{font-size:.88rem;color:#7a5800;margin-bottom:10px;font-weight:600}
+    .comment-item{font-size:.84rem;color:#5a4200;line-height:1.75;margin-bottom:5px}
+    .action-tip{
+      margin-top:10px;padding:8px 12px;background:#fff8d0;border-radius:7px;
+      font-size:.84rem;font-weight:600;color:#7a5800;border:1px solid #e8d860
+    }
+    .disclaimer{margin-top:8px;font-size:.72rem;color:#b0a080}
+
+    /* Source badge */
+    .source-badge{
+      display:inline-block;padding:1px 7px;border-radius:8px;font-size:.65rem;
+      background:#e8edf5;color:var(--sub);margin-left:6px;vertical-align:middle
+    }
+
+    /* ===== Recommend Panel ===== */
+    .rec-panel{
+      background:linear-gradient(135deg,#0a1f3e 0%,#1a3c6e 100%);
+      border-radius:14px;padding:22px;margin-bottom:22px;
+      box-shadow:0 4px 20px rgba(26,60,110,.25);color:#fff
+    }
+    .rec-panel-title{font-size:1rem;font-weight:700;letter-spacing:.5px;
+      margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .rec-panel-title span{font-size:.75rem;background:var(--accent);color:#1a1a2e;
+      padding:2px 10px;border-radius:12px;font-weight:700}
+
+    .rec-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px}
+    .rec-field label{font-size:.78rem;color:#a8c4ff;margin-bottom:6px;display:block;font-weight:600}
+    .rec-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .rec-btn{
+      padding:8px 16px;border-radius:20px;border:1.5px solid rgba(255,255,255,.25);
+      background:transparent;color:#c8d8f0;font-size:.82rem;cursor:pointer;
+      transition:.2s;font-family:inherit
+    }
+    .rec-btn:hover,.rec-btn.active{
+      background:var(--accent);color:#1a1a2e;border-color:var(--accent);font-weight:700
+    }
+    .rec-amount-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .rec-amount-row input{
+      width:150px;padding:9px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.08);color:#fff;font-size:.9rem;outline:none;font-family:inherit
+    }
+    .rec-amount-row input::placeholder{color:#7090b0}
+    .rec-amount-row input:focus{border-color:var(--accent)}
+    .rec-amount-row .amount-chips{display:flex;gap:6px;flex-wrap:wrap}
+    .amount-chip{
+      padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.06);color:#a8c4ff;font-size:.76rem;cursor:pointer;transition:.2s
+    }
+    .amount-chip:hover{background:rgba(255,255,255,.15);color:#fff}
+
+    .theme-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .theme-btn{
+      padding:6px 14px;border-radius:16px;border:1.5px solid rgba(255,255,255,.2);
+      background:transparent;color:#a8c4ff;font-size:.78rem;cursor:pointer;transition:.2s;font-family:inherit
+    }
+    .theme-btn:hover{border-color:#7bb4ff;color:#d0e4ff}
+    .theme-btn.active{background:rgba(100,160,255,.2);border-color:#7bb4ff;color:#d0e8ff;font-weight:600}
+
+    .btn-recommend{
+      display:block;width:100%;padding:13px;margin-top:16px;
+      background:linear-gradient(135deg,var(--accent),#e8b840);
+      color:#1a1a2e;border:none;border-radius:10px;font-size:1rem;
+      font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;letter-spacing:.5px
+    }
+    .btn-recommend:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,162,39,.5)}
+    .btn-recommend:active{transform:none}
+
+    /* Recommend Results */
+    .rec-result-wrap{background:var(--card);border-radius:14px;padding:22px;
+      margin-bottom:22px;box-shadow:0 2px 14px rgba(0,0,0,.06);border:1px solid var(--border)}
+    .rec-result-title{font-size:1rem;color:var(--primary);font-weight:700;margin-bottom:6px;
+      display:flex;align-items:center;gap:8px}
+    .rec-meta{font-size:.75rem;color:var(--sub);margin-bottom:16px}
+
+    .market-view-box{background:#f0f5ff;border-radius:10px;padding:14px;margin-bottom:18px;
+      border:1px solid #d0dcf0}
+    .market-view-box h4{font-size:.85rem;color:var(--primary);font-weight:700;margin-bottom:8px}
+    .market-view-box .mv-overall{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+    .mv-badge{padding:4px 14px;border-radius:12px;font-size:.78rem;font-weight:700}
+    .mv-badge.market{background:#e8edf8;color:var(--primary)}
+    .mv-badge.sentiment{background:#e8f5ee;color:#00843d}
+    .market-view-box ul{padding-left:18px}
+    .market-view-box li{font-size:.78rem;color:var(--sub);line-height:1.8}
+
+    .portfolio-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:.82rem}
+    .portfolio-table th{background:#f0f4ff;color:var(--primary);font-weight:700;
+      padding:10px 8px;text-align:left;border-bottom:2px solid var(--border)}
+    .portfolio-table td{padding:10px 8px;border-bottom:1px solid #eef2fb;vertical-align:top}
+    .portfolio-table tr:last-child td{border-bottom:none}
+    .portfolio-table tr:hover td{background:#f8faff}
+    .role-badge{
+      display:inline-block;padding:2px 9px;border-radius:10px;font-size:.68rem;font-weight:700
+    }
+    .role-badge.core{background:#ddeeff;color:#1a3c6e}
+    .role-badge.sat{background:#fff0d0;color:#7a5000}
+    .weight-bar-wrap{display:flex;align-items:center;gap:6px}
+    .weight-bar-bg{flex:1;height:7px;background:#e8edf8;border-radius:4px;overflow:hidden}
+    .weight-bar-fill{height:100%;border-radius:4px}
+    .weight-num{font-size:.78rem;font-weight:700;color:var(--primary);white-space:nowrap}
+    .fund-code-link{
+      font-size:.72rem;color:var(--sub);cursor:pointer;text-decoration:underline dotted;
+      background:none;border:none;font-family:inherit;padding:0
+    }
+    .fund-code-link:hover{color:var(--primary)}
+
+    .strategy-box{background:#fffef0;border-radius:10px;padding:14px;
+      border:1px solid #e8d860;margin-bottom:12px}
+    .strategy-box h4{font-size:.85rem;color:#7a5800;font-weight:700;margin-bottom:8px}
+    .strategy-item{font-size:.82rem;color:#5a4200;line-height:1.8;margin-bottom:4px}
+
+    .alloc-hint-box{background:#f0fff4;border-radius:10px;padding:14px;
+      border:1px solid #b0e0c0;margin-bottom:12px}
+    .alloc-hint-box h4{font-size:.85rem;color:#00843d;font-weight:700;margin-bottom:8px}
+    .alloc-row{display:flex;gap:10px;flex-wrap:wrap}
+    .alloc-item{background:#e0f5e9;border-radius:8px;padding:8px 14px;font-size:.78rem;color:#1a5a30}
+    .alloc-item strong{display:block;font-size:1rem;color:#00843d;font-weight:700}
+
+    .rec-action-tip{
+      background:linear-gradient(135deg,#1a3c6e,#2756a8);color:#fff;
+      border-radius:10px;padding:14px;font-size:.82rem;line-height:1.8;margin-bottom:12px
+    }
+    .rec-action-tip strong{color:var(--accent)}
+
+    .btn-analyze-rec{
+      background:linear-gradient(135deg,#1a3c6e,#2756a8);color:#fff;
+      padding:10px 22px;border:none;border-radius:9px;font-size:.88rem;
+      font-weight:700;cursor:pointer;transition:.15s;font-family:inherit
+    }
+    .btn-analyze-rec:hover{box-shadow:0 4px 14px rgba(26,60,110,.4)}
+
+    @media(max-width:640px){
+      .rec-panel{padding:16px}
+      .rec-form-grid{grid-template-columns:1fr;gap:12px}
+      .rec-amount-row input{width:120px}
+      .portfolio-table{font-size:.76rem}
+      .portfolio-table th,.portfolio-table td{padding:7px 5px}
+    }
+
+    /* ===== PWA Install Banner ===== */
+    #pwa-banner{
+      display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;
+      background:linear-gradient(135deg,#091d42,#1a3c6e);
+      color:#fff;padding:14px 18px;
+      padding-bottom:calc(14px + env(safe-area-inset-bottom));
+      box-shadow:0 -3px 16px rgba(0,0,0,.3);
+      display:flex;align-items:center;gap:12px;flex-wrap:wrap
+    }
+    #pwa-banner.hidden{display:none!important}
+    #pwa-banner .pwa-text{flex:1;font-size:.88rem}
+    #pwa-banner .pwa-text strong{display:block;font-size:.95rem;margin-bottom:2px}
+    #pwa-banner .pwa-text span{color:#a8c4ff;font-size:.78rem}
+    #pwa-install-btn{
+      background:var(--accent);color:#1a1a2e;border:none;
+      padding:9px 18px;border-radius:8px;font-size:.88rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;flex-shrink:0
+    }
+    #pwa-dismiss-btn{
+      background:transparent;color:#a8c4ff;border:none;
+      padding:9px;cursor:pointer;font-size:1.1rem;flex-shrink:0
+    }
+
+    /* iOS Safari install hint */
+    #ios-hint{
+      display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;
+      background:linear-gradient(135deg,#091d42,#1a3c6e);
+      color:#fff;padding:16px 18px;
+      padding-bottom:calc(16px + env(safe-area-inset-bottom));
+      box-shadow:0 -3px 16px rgba(0,0,0,.3);text-align:center
+    }
+    #ios-hint.hidden{display:none!important}
+    #ios-hint p{font-size:.88rem;line-height:1.7;color:#d0e0ff}
+    #ios-hint strong{color:#fff}
+    #ios-hint-close{
+      display:block;margin:10px auto 0;background:transparent;
+      border:1px solid #a8c4ff;color:#a8c4ff;padding:6px 20px;
+      border-radius:8px;cursor:pointer;font-size:.82rem
+    }
+
+    /* ===== Mobile Responsive ===== */
+    @media(max-width:640px){
+      body{font-size:15px}
+      .header{padding:14px 16px;gap:10px}
+      .header-icon{font-size:1.6rem}
+      .header-title{font-size:1.15rem;letter-spacing:.5px}
+      .header-sub{font-size:.72rem}
+      .header-badge{display:none}
+      .main{padding:12px 10px;padding-bottom:80px}
+      .panel{padding:16px}
+      .panel-title{font-size:.92rem}
+      .input-row{flex-direction:column;gap:10px}
+      .input-row input{width:100%;min-width:unset;padding:13px 14px;font-size:1rem}
+      .btn-analyze{width:100%;padding:14px;font-size:1rem;text-align:center}
+      .chips-row{gap:6px}
+      .chip{font-size:.75rem;padding:5px 10px}
+      .guide-grid{grid-template-columns:repeat(3,1fr);gap:7px}
+      .gi{padding:9px 6px}
+      .gi .icon{font-size:1.1rem}
+      .gi .lbl{font-size:.7rem}
+      .gi .wt{font-size:.65rem}
+      .gi .desc{display:none}
+      .card-head{gap:10px}
+      .fund-card{padding:14px}
+      .fund-name{font-size:.98rem}
+      .score-num{font-size:1.7rem}
+      .score-lbl{font-size:.62rem}
+      .rec-tag{font-size:.75rem;padding:5px 10px}
+      .stats-grid{grid-template-columns:repeat(4,1fr);gap:7px}
+      .stat{padding:8px 4px}
+      .stat-v{font-size:.95rem}
+      .stat-l{font-size:.6rem}
+      .bar-lbl{width:56px;font-size:.7rem}
+      .bar-val{font-size:.7rem}
+      .chart-wrap{height:160px}
+      .comment-item{font-size:.8rem}
+      .action-tip{font-size:.8rem}
+    }
+
+    @media(max-width:380px){
+      .guide-grid{grid-template-columns:repeat(2,1fr)}
+      .stats-grid{grid-template-columns:repeat(3,1fr)}
+      .header-title{font-size:1rem}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">📊</div>
+  <div>
+    <div class="header-title">明星基金经理分析系统</div>
+    <div class="header-sub">以专业基金经理视角 · 六维评分 · 智能选基</div>
+  </div>
+  <div class="header-badge">专业版 v1.0</div>
+</div>
+
+<div class="main">
+
+  <!-- 输入区 -->
+  <div class="panel">
+    <div class="panel-title">🔍 输入基金代码（最多5只，支持横向对比）</div>
+    <div class="input-row">
+      <input id="c1" type="text" placeholder="基金代码，如 110011" maxlength="6" inputmode="numeric"/>
+      <input id="c2" type="text" placeholder="对比基金（选填）" maxlength="6" inputmode="numeric"/>
+      <input id="c3" type="text" placeholder="对比基金（选填）" maxlength="6" inputmode="numeric"/>
+      <button class="btn-analyze" onclick="doAnalyze()">⚡ 开始分析</button>
+    </div>
+    <div class="chips-row">
+      <span class="label">热门示例：</span>
+      <div class="chip" onclick="setFunds(['110011','161725','000961'])">张坤 vs 侯昊 vs 田汉卿</div>
+      <div class="chip" onclick="setFunds(['110011','519732','163402'])">主动混合三强对比</div>
+      <div class="chip" onclick="setFunds(['000961','161725'])">指数基金对比</div>
+      <div class="chip" onclick="setFunds(['006228'])">葛兰医疗深度分析</div>
+    </div>
+
+    <!-- 六维说明 -->
+    <div class="panel-title" style="margin-bottom:10px">📐 六大选基维度（总分100）</div>
+    <div class="guide-grid">
+      <div class="gi"><div class="icon">📈</div><div class="lbl">业绩表现</div><div class="wt">权重 30%</div><div class="desc">1年/3年/成立以来</div></div>
+      <div class="gi"><div class="icon">🛡️</div><div class="lbl">风险控制</div><div class="wt">权重 25%</div><div class="desc">回撤/夏普/波动率</div></div>
+      <div class="gi"><div class="icon">👨‍💼</div><div class="lbl">基金经理</div><div class="wt">权重 20%</div><div class="desc">年限/稳定性/战绩</div></div>
+      <div class="gi"><div class="icon">⚖️</div><div class="lbl">基金规模</div><div class="wt">权重 10%</div><div class="desc">2-100亿为黄金区间</div></div>
+      <div class="gi"><div class="icon">💰</div><div class="lbl">费率成本</div><div class="wt">权重 8%</div><div class="desc">管理费/托管/申赎</div></div>
+      <div class="gi"><div class="icon">🏗️</div><div class="lbl">持仓质量</div><div class="wt">权重 7%</div><div class="desc">集中度/行业分散度</div></div>
+    </div>
+  </div>
+
+  <!-- 智能推荐面板 -->
+  <div class="rec-panel">
+    <div class="rec-panel-title">💡 智能基金推荐组合 <span>资深投资人视角</span></div>
+
+    <div class="rec-form-grid">
+      <!-- 风险偏好 -->
+      <div class="rec-field">
+        <label>投资风格</label>
+        <div class="rec-btns" id="style-btns">
+          <button class="rec-btn" data-val="保守" onclick="toggleRecBtn('style-btns',this)">🛡️ 保守型</button>
+          <button class="rec-btn active" data-val="稳健" onclick="toggleRecBtn('style-btns',this)">⚖️ 稳健型</button>
+          <button class="rec-btn" data-val="激进" onclick="toggleRecBtn('style-btns',this)">🚀 激进型</button>
+        </div>
+      </div>
+      <!-- 投资期限 -->
+      <div class="rec-field">
+        <label>投资期限</label>
+        <div class="rec-btns" id="horizon-btns">
+          <button class="rec-btn" data-val="短期" onclick="toggleRecBtn('horizon-btns',this)">⏱ 短期(&lt;1年)</button>
+          <button class="rec-btn" data-val="中期" onclick="toggleRecBtn('horizon-btns',this)">📅 中期(1-3年)</button>
+          <button class="rec-btn active" data-val="长期" onclick="toggleRecBtn('horizon-btns',this)">📈 长期(3年+)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主题偏好（多选） -->
+    <div class="rec-field" style="margin-bottom:14px">
+      <label>关注主题（可多选，不选则均衡配置）</label>
+      <div class="theme-btns" id="theme-btns">
+        <button class="theme-btn" data-val="宽基" onclick="toggleTheme(this)">🏛 宽基指数</button>
+        <button class="theme-btn" data-val="科技" onclick="toggleTheme(this)">💻 科技成长</button>
+        <button class="theme-btn" data-val="消费" onclick="toggleTheme(this)">🛒 消费白马</button>
+        <button class="theme-btn" data-val="医疗" onclick="toggleTheme(this)">🏥 医疗健康</button>
+        <button class="theme-btn" data-val="固收+" onclick="toggleTheme(this)">🏦 固收增强</button>
+        <button class="theme-btn" data-val="价值" onclick="toggleTheme(this)">💎 价值红利</button>
+        <button class="theme-btn" data-val="量化" onclick="toggleTheme(this)">🤖 量化策略</button>
+      </div>
+    </div>
+
+    <!-- 计划投资额 -->
+    <div class="rec-field">
+      <label>计划投资金额（元）</label>
+      <div class="rec-amount-row">
+        <input type="number" id="invest-amount" placeholder="如 100000" value="100000" min="1000" step="1000"/>
+        <div class="amount-chips">
+          <div class="amount-chip" onclick="setAmount(10000)">1万</div>
+          <div class="amount-chip" onclick="setAmount(50000)">5万</div>
+          <div class="amount-chip" onclick="setAmount(100000)">10万</div>
+          <div class="amount-chip" onclick="setAmount(300000)">30万</div>
+          <div class="amount-chip" onclick="setAmount(1000000)">100万</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-recommend" onclick="doRecommend()">🎯 生成专属推荐组合</button>
+  </div>
+
+  <!-- 推荐结果区 -->
+  <div id="rec-results" style="display:none"></div>
+
+  <!-- 结果区 -->
+  <div id="results" style="display:none">
+    <div id="loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <div>正在以基金经理视角深度分析中，请稍候…</div>
+    </div>
+    <div id="err-zone"></div>
+    <div id="result-list"></div>
+  </div>
+
+</div>
+
+<!-- PWA 安装横幅（Android Chrome） -->
+<div id="pwa-banner" class="hidden">
+  <div class="pwa-text">
+    <strong>添加到主屏幕</strong>
+    <span>像 App 一样使用，支持离线缓存</span>
+  </div>
+  <button id="pwa-install-btn">安装</button>
+  <button id="pwa-dismiss-btn">✕</button>
+</div>
+
+<!-- iOS Safari 安装提示 -->
+<div id="ios-hint" class="hidden">
+  <p>
+    在 <strong>Safari</strong> 中点击底部的 <strong>分享</strong> 按钮（□↑），<br>
+    然后选择 <strong>「添加到主屏幕」</strong>，即可像 App 使用。
+  </p>
+  <button id="ios-hint-close">知道了</button>
+</div>
+
+<script>
+const BAR_COLORS={
+  '业绩表现':'#2a5298','风险控制':'#00843d','基金经理':'#7030a0',
+  '规模适中':'#a07800','费率成本':'#0070c0','持仓质量':'#c55a11'
+};
+const MAX_SCORES={业绩表现:30,风险控制:25,基金经理:20,规模适中:10,费率成本:8,持仓质量:7};
+const charts={};
+
+function setFunds(codes){
+  ['c1','c2','c3'].forEach((id,i)=>{ document.getElementById(id).value=codes[i]||'' });
+}
+
+async function doAnalyze(){
+  const codes=['c1','c2','c3'].map(id=>document.getElementById(id).value.trim()).filter(Boolean);
+  if(!codes.length){alert('请输入至少一个6位基金代码');return}
+
+  document.getElementById('results').style.display='block';
+  document.getElementById('loading').style.display='block';
+  document.getElementById('err-zone').innerHTML='';
+  document.getElementById('result-list').innerHTML='';
+  Object.values(charts).forEach(c=>c.destroy());
+  Object.keys(charts).forEach(k=>delete charts[k]);
+
+  try{
+    const res=await fetch('/api/analyze',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({codes})
+    });
+    const data=await res.json();
+    document.getElementById('loading').style.display='none';
+
+    if(data.errors&&data.errors.length){
+      document.getElementById('err-zone').innerHTML=
+        data.errors.map(e=>`<div style="color:#c0392b;background:#fff2f2;border:1px solid #fcc;border-radius:8px;padding:10px;margin-bottom:10px">⚠️ 基金 ${e.code}：${e.error}</div>`).join('');
+    }
+    if(!data.results||!data.results.length){
+      document.getElementById('err-zone').innerHTML+='<div style="color:#888;padding:20px;text-align:center">暂无有效分析结果</div>';
+      return;
+    }
+    renderResults(data);
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('err-zone').innerHTML=`<div style="color:#c0392b;background:#fff2f2;border:1px solid #fcc;border-radius:8px;padding:10px">⚠️ 请求失败：${e.message}</div>`;
+  }
+}
+
+function renderResults(data){
+  const list=document.getElementById('result-list');
+  list.innerHTML=`<div class="results-bar">
+    <h2>📋 分析结果（${data.results.length}只基金，按综合评分排序）</h2>
+    <div class="results-meta">分析时间：${data.timestamp} · 数据仅供参考，不构成投资建议</div>
+  </div>`;
+  data.results.forEach((f,i)=>{list.appendChild(buildCard(f,i+1))});
+  setTimeout(()=>data.results.forEach(f=>renderChart(f)),80);
+}
+
+function buildCard(f,rank){
+  const rankClass=rank<=3?`top${rank}`:'topn';
+  const rankLabel=rank<=3?['🥇','🥈','🥉'][rank-1]:rank;
+  const rec=f.recommendation;
+  const sc=f.scores || {};
+  const scoreColor=f.total_score>=80?'#00843d':f.total_score>=70?'#3a9e5f':f.total_score>=60?'#e6a817':f.total_score>=50?'#e07b00':'#c0392b';
+
+  const fmtRet=(v,suf='%')=>v!=null?`${v>=0?'+':''}${v}${suf}`:'-';
+  const cls=(v)=>v==null?'':v>=0?'pos':'neg';
+
+  const barItems=['业绩表现','风险控制','基金经理','规模适中','费率成本','持仓质量'];
+  const bars=barItems.map(k=>{
+    const s=sc && sc[k] ? sc[k] : 0;
+    const pct=Math.round(s/(MAX_SCORES[k]||10)*100);
+    return `<div class="bar-row">
+      <div class="bar-lbl">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${BAR_COLORS[k]}"></div></div>
+      <div class="bar-val">${s}</div>
+    </div>`;
+  }).join('');
+
+  const comments=f.commentary.map(c=>`<div class="comment-item">${mdBold(c)}</div>`).join('');
+  const srcBadge=f.source==='akshare'?'<span class="source-badge">真实数据</span>':'<span class="source-badge">演示数据</span>';
+
+  const div=document.createElement('div');
+  div.className=`fund-card ${rankClass}`;
+  div.innerHTML=`
+    <div class="card-head">
+      <div class="rank-badge">${rankLabel}</div>
+      <div class="fund-info">
+        <div class="fund-name">${f.name}${srcBadge}</div>
+        <div class="fund-tags">
+          <span class="tag">🏦 ${f.code}</span>
+          <span class="tag">📁 ${f.type}</span>
+          <span class="tag">👨‍💼 ${f.manager}</span>
+          <span class="tag">💼 ${f.size}亿</span>
+          <span class="tag">💸 管理费${f.management_fee}%</span>
+          <span class="tag">📅 成立${f.setup_date}</span>
+        </div>
+      </div>
+      <div class="score-block">
+        <div class="score-num" style="color:${scoreColor}">${f.total_score}</div>
+        <div class="score-lbl">综合评分</div>
+        <div style="font-size:.72rem;color:#aaa;margin-top:2px">${rec.icon}</div>
+      </div>
+      <div class="rec-tag" style="background:${rec.color}">${rec.level}</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-v ${cls(f.annual_return)}">${fmtRet(f.annual_return)}</div><div class="stat-l">年化收益</div></div>
+      <div class="stat"><div class="stat-v ${cls(f.ret_1y)}">${fmtRet(f.ret_1y)}</div><div class="stat-l">近1年</div></div>
+      <div class="stat"><div class="stat-v ${cls(f.ret_3y)}">${fmtRet(f.ret_3y)}</div><div class="stat-l">近3年</div></div>
+      <div class="stat"><div class="stat-v">${f.nav_latest}</div><div class="stat-l">最新净值</div></div>
+      <div class="stat"><div class="stat-v neg">${f.max_drawdown}%</div><div class="stat-l">最大回撤</div></div>
+      <div class="stat"><div class="stat-v">${f.sharpe}</div><div class="stat-l">夏普比率</div></div>
+      <div class="stat"><div class="stat-v">${f.volatility}%</div><div class="stat-l">年化波动率</div></div>
+      <div class="stat"><div class="stat-v ${cls(f.ret_total)}">${fmtRet(f.ret_total)}</div><div class="stat-l">成立以来</div></div>
+    </div>
+
+    <div class="score-section">
+      <h3>📊 六维评分详情（满分100分）</h3>
+      ${bars}
+    </div>
+
+    <div class="chart-section">
+      <h3>📈 近180日净值走势</h3>
+      <div class="chart-wrap"><canvas id="ch-${f.code}"></canvas></div>
+    </div>
+
+    <div class="comment-section">
+      <h3>🎯 明星基金经理深度点评</h3>
+      ${comments}
+      <div class="action-tip">💡 操作建议：${rec.action}</div>
+      <div class="disclaimer">⚠️ 免责：以上分析基于历史数据，过去业绩不代表未来表现。市场有风险，投资需谨慎。本工具仅供学习参考，不构成任何投资建议。</div>
+    </div>`;
+  return div;
+}
+
+function renderChart(f){
+  const el=document.getElementById(`ch-${f.code}`);
+  if(!el)return;
+  const color=f.annual_return>=0?'#2a5298':'#c0392b';
+  const nav=f.nav_chart;
+  charts[f.code]=new Chart(el.getContext('2d'),{
+    type:'line',
+    data:{
+      labels:nav.dates,
+      datasets:[{
+        label:'单位净值',data:nav.values,
+        borderColor:color,backgroundColor:color+'18',
+        fill:true,tension:.4,pointRadius:0,borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`净值：${c.parsed.y.toFixed(4)}`}}
+      },
+      scales:{
+        x:{ticks:{maxTicksLimit:6,maxRotation:0},grid:{display:false}},
+        y:{ticks:{callback:v=>v.toFixed(2)},grid:{color:'#eef2fb'}}
+      }
+    }
+  });
+}
+
+function mdBold(t){return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doAnalyze()});
+
+// ===== 推荐功能 =====
+function toggleRecBtn(groupId, btn){
+  document.querySelectorAll(`#${groupId} .rec-btn`).forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleTheme(btn){
+  btn.classList.toggle('active');
+}
+
+function setAmount(val){
+  document.getElementById('invest-amount').value = val;
+}
+
+function getActiveVal(groupId){
+  const active = document.querySelector(`#${groupId} .rec-btn.active`);
+  return active ? active.dataset.val : null;
+}
+
+function getActiveThemes(){
+  return [...document.querySelectorAll('#theme-btns .theme-btn.active')].map(b=>b.dataset.val);
+}
+
+async function doRecommend(){
+  const style = getActiveVal('style-btns') || '稳健';
+  const horizon = getActiveVal('horizon-btns') || '长期';
+  const themes = getActiveThemes();
+  const amount = parseFloat(document.getElementById('invest-amount').value) || 100000;
+
+  const zone = document.getElementById('rec-results');
+  zone.style.display = 'block';
+  zone.innerHTML = `<div class="loading"><div class="spinner"></div><div>正在为您构建专属投资组合，请稍候…</div></div>`;
+
+  try{
+    const res = await fetch('/api/recommend', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({style, horizon, themes, amount})
+    });
+    const data = await res.json();
+    if(data.error){ zone.innerHTML=`<div style="color:#c0392b;padding:16px">⚠️ ${data.error}</div>`; return; }
+    renderRecResult(data, zone);
+  }catch(e){
+    zone.innerHTML=`<div style="color:#c0392b;padding:16px">⚠️ 请求失败：${e.message}</div>`;
+  }
+}
+
+function renderRecResult(data, zone){
+  const p = data.params;
+  const mv = data.market_view;
+  const portfolio = data.portfolio;
+
+  // 颜色映射
+  const roleColors = {'核心':'#2a5298','卫星':'#c9a227'};
+  const RISK_LABELS = {1:'低风险',2:'中低',3:'中等',4:'中高',5:'高风险'};
+  const RISK_COLORS = {1:'#00843d',2:'#3a9e5f',3:'#e6a817',4:'#e07b00',5:'#c0392b'};
+
+  // 组合汇总
+  const totalFee = portfolio.reduce((s,f)=>s+f.management_fee*(f.weight_pct/100),0).toFixed(3);
+  const avgRisk = (portfolio.reduce((s,f)=>s+f.risk_level*(f.weight_pct/100),0)/
+    portfolio.reduce((s,f)=>s+(f.weight_pct||0),0)*portfolio.length).toFixed(1);
+
+  // 市场观点
+  const mvHtml = `<div class="market-view-box">
+    <h4>📡 当前市场环境（${mv.date}）</h4>
+    <div class="mv-overall">
+      <div class="mv-badge market">市场：${mv.overall}</div>
+      <div class="mv-badge sentiment">情绪：${mv.sentiment}</div>
+    </div>
+    <ul>${mv.highlights.map(h=>`<li>${h}</li>`).join('')}</ul>
+  </div>`;
+
+  // 配置建议
+  const alloc = data.allocation_hint;
+  const allocHtml = alloc && Object.keys(alloc).length ? `<div class="alloc-hint-box">
+    <h4>📐 「${p.style}」型推荐资产配置比例</h4>
+    <div class="alloc-row">${Object.entries(alloc).map(([k,v])=>`
+      <div class="alloc-item"><strong>${v}</strong>${k}</div>`).join('')}
+    </div>
+  </div>` : '';
+
+  // 组合明细表
+  const tableRows = portfolio.map(f=>{
+    const roleCls = f.role==='核心'?'core':'sat';
+    const barColor = f.role==='核心'?'#2a5298':'#c9a227';
+    const riskColor = RISK_COLORS[f.risk_level]||'#888';
+    const amtStr = f.amount>=10000 ? `${(f.amount/10000).toFixed(1)}万` : `${f.amount}元`;
+    return `<tr>
+      <td><span class="role-badge ${roleCls}">${f.role}</span></td>
+      <td>
+        <div style="font-weight:600;font-size:.85rem">${f.name}</div>
+        <div style="margin-top:3px">
+          <button class="fund-code-link" onclick="loadFundToAnalyze('${f.code}')" title="点击跳转分析">${f.code}</button>
+          <span style="font-size:.72rem;color:var(--sub);margin-left:6px">${f.type}</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--sub);margin-top:2px">经理：${f.manager}</div>
+      </td>
+      <td>
+        <div class="weight-bar-wrap">
+          <div class="weight-bar-bg"><div class="weight-bar-fill" style="width:${f.weight_pct}%;background:${barColor}"></div></div>
+          <div class="weight-num">${f.weight_pct}%</div>
+        </div>
+        <div style="font-size:.72rem;color:var(--sub);margin-top:3px">≈ ${amtStr}</div>
+      </td>
+      <td style="color:${riskColor};font-weight:600;font-size:.78rem">${RISK_LABELS[f.risk_level]||'未知'}</td>
+      <td style="font-size:.78rem;color:var(--sub)">${f.management_fee}%/年</td>
+      <td style="font-size:.78rem;color:var(--sub);max-width:200px">${f.desc}</td>
+    </tr>`;
+  }).join('');
+
+  // 策略文字
+  const strategyHtml = `<div class="strategy-box">
+    <h4>🎯 组合投资策略解读</h4>
+    ${data.strategy.map(s=>`<div class="strategy-item">${mdBold(s)}</div>`).join('')}
+  </div>`;
+
+  // 操作建议
+  const recActionHtml = `<div class="rec-action-tip">
+    <strong>立即行动：</strong>在下方"深度分析"框中输入上述基金代码，逐一进行六维评分核验。
+    可点击基金代码直接载入分析框，确认无误后再实际购买。建议通过官方基金公司App或正规基金平台申购，注意申购费率折扣。
+  </div>`;
+
+  const codes = portfolio.map(f=>f.code).slice(0,3);
+  const analyzeBtn = `<button class="btn-analyze-rec" id="btn-analyze-rec-main">
+    ⚡ 一键分析推荐组合（前3只）
+  </button>`;
+
+  zone.innerHTML = `<div class="rec-result-wrap">
+    <div class="rec-result-title">📦 专属推荐组合 · ${p.style}型 · ${p.horizon}持有${p.themes&&p.themes.length?` · 主题：${p.themes.join('/')}`:''}</div>
+    <div class="rec-meta">
+      推荐基金 ${data.total_funds} 只（核心 ${data.core_count} 只 + 卫星 ${data.satellite_count} 只）·
+      组合加权费率 ${totalFee}%/年 · 生成时间：${data.timestamp}
+    </div>
+    ${mvHtml}
+    ${allocHtml}
+    <table class="portfolio-table">
+      <thead><tr><th>角色</th><th>基金</th><th>建议权重</th><th>风险</th><th>费率</th><th>选择逻辑</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+    ${strategyHtml}
+    ${recActionHtml}
+    ${analyzeBtn}
+    <div style="font-size:.72rem;color:#b0b8c8;margin-top:12px">
+      ⚠️ 以上推荐由系统基于历史数据和规则模型自动生成，不构成投资建议。市场有风险，投资需谨慎，请结合自身情况理性决策。
+    </div>
+  </div>`;
+
+  // innerHTML 写入后再绑定按钮事件（避免 onclick 里双引号破坏 HTML 属性）
+  document.getElementById('btn-analyze-rec-main')
+    .addEventListener('click', ()=>loadFundsToAnalyze(codes));
+
+  // 平滑滚动到结果
+  setTimeout(()=>zone.scrollIntoView({behavior:'smooth',block:'start'}), 100);
+}
+
+function loadFundToAnalyze(code){
+  document.getElementById('c1').value = code;
+  document.getElementById('c2').value = '';
+  document.getElementById('c3').value = '';
+  document.querySelector('.panel').scrollIntoView({behavior:'smooth'});
+}
+
+function loadFundsToAnalyze(codes){
+  ['c1','c2','c3'].forEach((id,i)=>{ document.getElementById(id).value = codes[i]||''; });
+  document.querySelector('.panel').scrollIntoView({behavior:'smooth'});
+  setTimeout(doAnalyze, 500);
+}
+
+// ===== PWA Install Logic =====
+let deferredPrompt = null;
+
+function isIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function isInStandaloneMode(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+}
+
+// Android / Chrome: listen for install prompt
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('pwa-banner');
+  banner.classList.remove('hidden');
+
+  document.getElementById('pwa-install-btn').addEventListener('click', () => {
+    banner.classList.add('hidden');
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+  });
+
+  document.getElementById('pwa-dismiss-btn').addEventListener('click', () => {
+    banner.classList.add('hidden');
+  });
+});
+
+// iOS Safari: show manual guide (only if not already installed)
+window.addEventListener('load', () => {
+  if (isIOS() && !isInStandaloneMode()) {
+    // Show after a short delay so it doesn't jar on first load
+    setTimeout(() => {
+      const hint = document.getElementById('ios-hint');
+      hint.style.display = 'block';
+      document.getElementById('ios-hint-close').addEventListener('click', () => {
+        hint.classList.add('hidden');
+      });
+    }, 2000);
+  }
+});
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

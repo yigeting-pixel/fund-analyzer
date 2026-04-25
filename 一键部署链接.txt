@@ -1,0 +1,47 @@
+基金分析工具 - 一键部署指南
+=====================================
+
+🌟 最简单的一键部署方法：
+
+1️⃣ 先创建GitHub仓库：
+   - 访问 https://github.com
+   - 点击 "New repository"
+   - 仓库名填：fund-analyzer
+   - 点击 "Create repository"
+
+2️⃣ 上传项目文件：
+   - 点击 "uploading an existing file"
+   - 拖入 fund_analyzer 文件夹中的所有文件
+   - 点击 "Commit changes"
+
+3️⃣ 一键部署到Render：
+   🔗 部署链接：https://render.com/deploy?repo=https://github.com/[你的GitHub用户名]/fund-analyzer
+
+   ⚠️  重要：请将上面的 [你的GitHub用户名] 替换为你的实际GitHub用户名
+
+   例如：如果你的GitHub用户名是 "zhangsan"，链接应该是：
+   https://render.com/deploy?repo=https://github.com/zhangsan/fund-analyzer
+
+4️⃣ 完成部署：
+   - 点击上面的链接
+   - 用GitHub账号登录Render
+   - 选择你的 fund-analyzer 仓库
+   - 点击 "Deploy" 按钮
+   - 等待3-5分钟...
+
+5️⃣ 获得分享链接：
+   - 部署完成后，你会看到一个 .onrender.com 结尾的链接
+   - 这个链接就可以发给朋友在手机上使用了！
+
+📱 手机访问效果：
+- 响应式设计，完美适配各种手机屏幕
+- 支持基金代码分析和智能推荐
+- 专业评分系统，投资决策参考
+
+💡 提示：
+- Render免费额度完全够用
+- 无需信用卡，直接用GitHub登录即可
+- 部署失败可检查 requirements.txt 中的依赖版本
+
+=====================================
+现在就去部署吧！🚀

@@ -1,0 +1,14 @@
+{
+  "name": "明星基金经理分析系统",
+  "short_name": "基金分析",
+  "description": "以专业基金经理视角，六维评分智能选基",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#1a3c6e",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

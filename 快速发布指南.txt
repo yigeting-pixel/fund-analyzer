@@ -1,0 +1,62 @@
+🎯 **基金分析工具 - 快速发布指南**
+
+===============================
+
+📋 **准备材料：**
+- GitHub账号（免费注册）
+- fund_analyzer 项目文件
+
+---
+
+## ⚡ 三步发布（5分钟完成）
+
+### 第一步：创建GitHub仓库
+1. 访问：https://github.com
+2. 登录 → 点击 "+" → "New repository"
+3. 仓库名：`fund-analyzer`
+4. 设置为 Public（公开）
+5. 点击 "Create repository"
+
+### 第二步：上传代码
+1. 在仓库页面点击 "uploading an existing file"
+2. 拖入 fund_analyzer 文件夹中的所有文件
+3. 提交信息：`Initial commit - Fund Analyzer`
+4. 点击 "Commit changes"
+
+### 第三步：一键部署
+🔗 **点击你的专属部署链接：**
+
+```
+https://render.com/deploy?repo=https://github.com/[你的GitHub用户名]/fund-analyzer
+```
+
+⚠️ **替换示例**：
+- 如果你是 `zhangsan` → `https://render.com/deploy?repo=https://github.com/zhangsan/fund-analyzer`
+- 如果你是 `lisi` → `https://render.com/deploy?repo=https://github.com/lisi/fund-analyzer**
+
+---
+
+## ✅ 部署完成
+
+1. **等待3-5分钟**，看到状态变为 "Live"
+2. **获得链接**：`https://fund-analyzer.onrender.com`
+3. **分享给朋友**：手机电脑都能用！
+
+---
+
+## 🎉 恭喜！
+
+你现在有了一个**专业的基金分析工具**，可以分享给任何人使用！
+
+**分享文案：**
+```
+🔗 专业基金分析工具（免费使用）
+📱 手机电脑都能打开
+⭐ 支持20000+只基金分析
+🎯 明星基金经理评分系统
+链接：https://fund-analyzer.onrender.com
+```
+
+---
+
+**🚀 现在就去发布吧！**
